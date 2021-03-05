@@ -24,5 +24,6 @@ yarn-error.log*
 
 .env
 flask-dev.sh
+deploy.sh
 /data
 __pycache__/
