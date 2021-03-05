@@ -21,3 +21,8 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+.env
+flask-dev.sh
+/data
+__pycache__/
