@@ -1,5 +1,4 @@
 import os
-from dotenv import load_dotenv
 import psycopg2
 import psycopg2.extras
 from flask import Flask, request, render_template, g
@@ -7,8 +6,10 @@ from flask_cors import CORS
 app = Flask(__name__, static_url_path='')
 CORS(app)
 
-load_dotenv()
-DB_URI = os.getenv('DB_URI')
+DB_URI = \
+    os.getenv('DB_URI_DEV') \
+    if os.getenv('FLASK_ENV') == 'development' and os.getenv('DB_URI_DEV') \
+    else os.getenv('DB_URI')
 
 def get_db():
     db = getattr(g, '_database', None)
