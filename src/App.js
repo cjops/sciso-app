@@ -7,81 +7,10 @@ import {interpolateRound, interpolateLab} from "d3-interpolate";
 import {axisTop} from "d3-axis"
 import Tippy, {useSingleton} from '@tippyjs/react';
 import {followCursor} from 'tippy.js';
-import 'tippy.js/dist/tippy.css'; // optional
-import './App.css';
-
-class GeneInput extends React.Component {
-  constructor(props) {
-    super(props);
-    this.handleSubmit = this.handleSubmit.bind(this);
-    this.input = React.createRef();
-  }
-  handleSubmit(event) {
-    this.props.onChange(this.input.current.value)
-    event.preventDefault();
-  }
-  render() {
-    //const defaultGene = this.props.gene;
-    const defaultGene = 'RBFOX1';
-    return (
-      <form className="GeneInput" onSubmit={this.handleSubmit}>
-        <input type="text" defaultValue={defaultGene} ref={this.input} />
-        <input type="submit" />
-      </form>
-    )
-  }
-}
-
-class DatasetInput extends React.Component {
-  constructor(props) {
-    super(props);
-    this.handleInputChange = this.handleInputChange.bind(this);
-  }
-
-  componentDidMount() {
-    json('/v2/dataset').then(data => {
-      let datasets = data.datasets.map((dataset) => {
-        dataset.isChecked = true;
-        return dataset;
-      });
-      const ref_datasets = datasets.filter(dataset => dataset.is_reference);
-      datasets = datasets.filter(dataset => !dataset.is_reference);
-      datasets.unshift(...ref_datasets);
-      this.props.onChange(datasets);
-    });
-  }
-
-  handleInputChange(i) {
-    let datasets = this.props.datasets;
-    datasets[i].isChecked = !datasets[i].isChecked;
-    this.props.onChange(datasets)
-  }
-
-  render() {
-    const datasets = this.props.datasets.map((dataset, i) =>
-      <DatasetCheckbox dataset={dataset} i={i} key={dataset.id} onChange={() => this.handleInputChange(i)} />
-    );
-    return (
-      <form>
-        {datasets}
-      </form>
-    );
-  }
-}
-
-function DatasetCheckbox(props) {
-  const dataset = props.dataset;
-  return (
-    <>
-      <input
-        name={dataset.name}
-        type="checkbox"
-        checked={dataset.isChecked}
-        onChange={props.onChange} />
-      <label>{dataset.name}<br /></label>
-    </>
-  );
-}
+import {GeneInput} from './GeneInput.js'
+import {DatasetInput} from './DatasetInput.js'
+import 'tippy.js/dist/tippy.css';
+import './App.scss';
 
 class GeneViz extends React.Component {
   constructor(props) {
@@ -117,7 +46,7 @@ function GeneVizFrame(props) {
     'paddingOuter': 40,
     'paddingInner': 5,
     'labelWidth': 120,
-    'rectsWidth': 800,
+    'rectsWidth': 756,
     'paddingX': 10,
     'height': 1000,
     'bubblesAxisHeight': 25
@@ -138,7 +67,7 @@ function GeneVizFrame(props) {
     d.w = exonScale(d.length);
   });
   const dsIDs = props.datasets.filter(ds => ds.isChecked).map(ds => ds.id);
-  let visibleTranscripts = data.transcripts.filter(tx => !tx.is_model && dsIDs.includes(tx.dataset_id));
+  let visibleTranscripts = data.transcripts.filter(tx => tx.is_model || dsIDs.includes(tx.dataset_id));
   //const visibleTranscripts = data.transcripts.filter(tx => tx.is_model || dsIDs.includes(tx.dataset_id));
   const expression = visibleTranscripts.filter(tx => tx.attributes.expression).map(tx => tx.attributes.expression);
   visibleTranscripts.sort((a,b) => {
@@ -191,8 +120,7 @@ function GeneVizFrame(props) {
   });
   dims.height = dims.paddingOuter*2 + dims.bandWidth*visibleTranscripts.length + dims.paddingInner*(visibleTranscripts.length-1);
   return (
-    <div className='GeneVizFrame' style={{width: dims.width}}>
-      <h2>{data.chromosome}: {data.name}</h2>
+    <div className='GeneVizFrame my-3' style={{width: dims.width}}>
       <svg viewBox={`0 0 ${dims.width} ${dims.height}`} xmlns="http://www.w3.org/2000/svg">
         <style>{`
           text {
@@ -236,7 +164,8 @@ function Transcript(props) {
   const modelExons = props.modelExons;
   const transcriptID = props.data.annot_transcript_id;
   const dims=props.dims;
-  const is_reference = props.datasets[props.data.dataset_id].is_reference;
+  const dataset = !props.data.is_model ? props.datasets[props.data.dataset_id] : {};
+  const is_reference = dataset.is_reference;
   let exons = props.data.exons;
   // calculaing x and w of the rectangle for each curated exon on the final gene model
   exons.forEach((d, i) => {
@@ -254,7 +183,7 @@ function Transcript(props) {
     else{
       // if this exon doesn't start from the oriExon start pos
       const dist = Number(d.chrom_start) - Number(d.oriExon.chrom_start) + 1;
-      d.x = d.oriExon.x + exonScale(dist) - 2; // same as minintronlength!
+      d.x = d.oriExon.x + exonScale(dist) - 2; // same as minExonWidth!
     }
 
     // calculate for w
@@ -271,7 +200,7 @@ function Transcript(props) {
     >
       <Tippy
         allowHTML={true}
-        content={<span>Dataset: {props.datasets[props.data.dataset_id].name}<br />Transcript type: {props.data.attributes.transcript_type}<br />Source: {props.data.attributes.source}</span>}
+        content={<span>Dataset: {dataset.name}<br />Transcript type: {props.data.attributes.transcript_type}<br />Source: {props.data.attributes.source}</span>}
         aria={null}
         trigger={'mouseenter'}
         hideOnClick={false}
@@ -373,7 +302,7 @@ function Exon(props)
   );
 }
 
-function setXscales(exonIntervals, w=1000, minExonWidth=7, minIntronWidth=2) {
+function setXscales(exonIntervals, w=1000, minExonWidth=2, minIntronWidth=7) {
   exonIntervals.sort((a,b)=>{
     if (Number(a.chrom_start) < Number(b.chrom_start)) return -1;
     if (Number(a.chrom_start) > Number(b.chrom_start)) return 1;
@@ -398,12 +327,12 @@ function setXscales(exonIntervals, w=1000, minExonWidth=7, minIntronWidth=2) {
   const intronDomain = [0, intronSum];
   const exonRange = [0, w*.65 - (exonIntervals.length * minIntronWidth)];
   const intronRange = [0, (w * .35) - (exonIntervals.length * minExonWidth)];
-  let exonScale = (val) => minIntronWidth + scaleLinear()
+  let exonScale = (val) => minExonWidth + scaleLinear()
     .domain(exonDomain)
     .range(exonRange)
     .interpolate(interpolateRound)
     .call(null, val);
-  let intronScale = (val) => minExonWidth + scaleLinear()
+  let intronScale = (val) => minIntronWidth + scaleLinear()
     .domain(intronDomain)
     .range(intronRange)
     .interpolate(interpolateRound)
@@ -471,26 +400,39 @@ class App extends React.Component {
     const datasets = this.state.datasets;
 
     return (
-      <>
-        <GeneInput
-          gene={gene}
-          onChange={this.handleGeneChange}
-        />
-        <DatasetInput
-          datasets={datasets}
-          onChange={this.handleDatasetsChange}
-        />
-        <button
-          onClick={this.downloadSVG}
-        >
-          Save SVG
-        </button>
+      <div className="container-xxl">
+        <div className="my-3">
+          <h1>scISOseq Portal</h1>
+        </div>
+        <div className="row gy-3">
+          <div className="col col-auto">
+            <GeneInput
+              gene={gene}
+              onChange={this.handleGeneChange}
+            />
+          </div>
+          <div className="col col-auto">
+            <DatasetInput
+              datasets={datasets}
+              onChange={this.handleDatasetsChange}
+            />
+          </div>
+          <div className="col col-auto">
+            <button
+              type="button"
+              className="btn btn-light"
+              onClick={this.downloadSVG}
+            >
+              Save SVG
+            </button>
+          </div>
+        </div>
         <GeneViz
           gene={gene}
           datasets={datasets}
           svgRef={this.svgRef}
         />
-      </>
+      </div>
     )
   }
 }

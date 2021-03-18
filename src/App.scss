@@ -1,0 +1,10 @@
+$select-ns: 'selectize';
+
+@import '~bootstrap/scss/bootstrap.scss';
+@import '~tom-select/src/scss/tom-select.bootstrap5.scss';
+
+.#{$select-ns}-control.plugin-remove_button{
+  .item .remove {
+    padding: 0 $select-padding-item-x;
+  }
+}

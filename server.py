@@ -27,6 +27,29 @@ def get_datasets():
     cur.close()
     return {'datasets': datasets}
 
+def get_gene_names(datasets=['rep1', 'rep2']):
+    '''
+    Get a full list of gene names to be used with autocomplete.
+    '''
+
+    # Might make sense for currently visible datasets to be stored in the db
+    # instead of hardcoded here.
+
+    cur = get_db().cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cur.execute('''
+        SELECT id, name
+        FROM gene g
+        WHERE EXISTS (
+            SELECT FROM transcript
+            WHERE dataset_id IN (SELECT id FROM dataset WHERE name=ANY(%s))
+            AND gene_id=g.id
+        );
+        ''',
+        (list(datasets),))
+    gene_list = [(g['id'], g['name']) for g in cur]
+    gene_list.sort(key=lambda x: x[1])
+    return {'genes': gene_list}
+
 def find_gene(gene_name):
     cur = get_db().cursor(cursor_factory=psycopg2.extras.DictCursor)
     cur.execute('''
@@ -80,3 +103,7 @@ def gene_api():
 @app.route("/v2/dataset")
 def dataset_api():
     return get_datasets()
+
+@app.route("/v2/gene_names")
+def gene_name_api():
+    return get_gene_names()
