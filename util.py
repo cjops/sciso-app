@@ -332,18 +332,15 @@ def init_db(fname='schema.sql'):
     cur.close()
 
 def populate_db(data_dir='data'):
-    with open(f'{data_dir}/All_filtered_118k_multiexon_A0.75_minRead3_2datasetsupport_talon.gtf') as f:
-        import_gtf(f, 'rep1')
-
-    with open(f'{data_dir}/scIso_whitelisted_talon.gtf') as f:
-        import_gtf(f, 'rep2')
+    with open(f'{data_dir}/Isoform_annotations_4281_knownCells.gtf') as f:
+        import_gtf(f, 'final')
 
     with gzip.open(f'{data_dir}/gencode.v33lift37.annotation.gtf.gz', 'rt') as f:
         import_gtf(f, 'gencode.v33lift37', is_ref=True)
 
     generate_model_exons()
 
-    with open(f'{data_dir}/Isoform_Average_percent_expression.txt') as f:
-        import_expression_values(f, 'rep1')
+    with open(f'{data_dir}/Isoform_Average_percent_expression_updated.txt') as f:
+        import_expression_values(f, 'final')
 
 #%%
