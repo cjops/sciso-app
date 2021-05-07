@@ -11,7 +11,7 @@ CREATE TABLE gene
     chromosome text NOT NULL,
     strand genomic_strand NOT NULL,
     attributes jsonb,
-    UNIQUE (name, chromosome)
+    UNIQUE (name, chromosome, strand)
 );
 
 CREATE TABLE dataset

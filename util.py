@@ -344,3 +344,7 @@ def populate_db(data_dir='data'):
         import_expression_values(f, 'final')
 
 #%%
+
+if __name__ == "__main__":
+    init_db()
+    populate_db(data_dir='../data')
