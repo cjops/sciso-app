@@ -7,7 +7,7 @@ from time import perf_counter as timer
 import gzip
 
 load_dotenv()
-_DB_URI = os.getenv('DB_URI')
+_DB_URI = os.getenv('DB_URI_DEV') if os.getenv('DB_URI_DEV') else os.getenv('DB_URI')
 _con = psycopg2.connect(_DB_URI)
 
 #%%
