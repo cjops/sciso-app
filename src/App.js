@@ -41,18 +41,19 @@ class GeneViz extends React.Component {
 
 function GeneVizFrame(props) {
   const numCellTypes=16;
+  const showBubbles=false;
   const dims = {
     'bandWidth': 16,
     'paddingOuter': 40,
     'paddingInner': 5,
     'labelWidth': 120,
-    'rectsWidth': 756,
+    'rectsWidth': 1156,
     'paddingX': 10,
     'height': 1000,
     'bubblesAxisHeight': 25
   };
   //dims.bubblesWidth = (numCellTypes*dims.bandWidth)+((numCellTypes-1)*dims.bandWidth);
-  dims.bubblesWidth = 400;
+  dims.bubblesWidth = 0;
   dims.bubblesDiam = 20;
   dims.width = dims.labelWidth + dims.rectsWidth + dims.bubblesWidth + (dims.paddingX*2);
   const data = props.data;
@@ -67,7 +68,7 @@ function GeneVizFrame(props) {
     d.w = exonScale(d.length);
   });
   const dsIDs = props.datasets.filter(ds => ds.isChecked).map(ds => ds.id);
-  let visibleTranscripts = data.transcripts.filter(tx => tx.is_model || dsIDs.includes(tx.dataset_id));
+  let visibleTranscripts = data.transcripts.filter(tx => !tx.is_model && dsIDs.includes(tx.dataset_id));
   //const visibleTranscripts = data.transcripts.filter(tx => tx.is_model || dsIDs.includes(tx.dataset_id));
   const expression = visibleTranscripts.filter(tx => tx.attributes.expression).map(tx => tx.attributes.expression);
   visibleTranscripts.sort((a,b) => {
@@ -98,6 +99,7 @@ function GeneVizFrame(props) {
       i={i}
       dims={dims}
       datasets={props.datasets.reduce((obj, item) => (obj[item.id] = item, obj) ,{})}
+      showBubbles={showBubbles}
     />
   );
   useEffect(() => {
@@ -238,13 +240,13 @@ function Transcript(props) {
         ></line>
         {exonElems}
       </g>
-      <ExpressionBubbles
+      {props.showBubbles && <ExpressionBubbles
         data={props.data}
         radiusScale={props.expressionRadiusScale}
         colorScale={props.expressionColorScale}
         xScale={props.expressionXScale}
         dims={dims}
-      />
+      />}
     </g>
   );
 }
@@ -325,8 +327,8 @@ function setXscales(exonIntervals, w=1000, minExonWidth=2, minIntronWidth=7) {
 
   const exonDomain = [0, exonSum];
   const intronDomain = [0, intronSum];
-  const exonRange = [0, w*.65 - (exonIntervals.length * minIntronWidth)];
-  const intronRange = [0, (w * .35) - (exonIntervals.length * minExonWidth)];
+  const exonRange = [0, w*.7 - (exonIntervals.length * minIntronWidth)];
+  const intronRange = [0, (w * .3) - (exonIntervals.length * minExonWidth)];
   let exonScale = (val) => minExonWidth + scaleLinear()
     .domain(exonDomain)
     .range(exonRange)
@@ -402,7 +404,7 @@ class App extends React.Component {
     return (
       <div className="container-xxl">
         <div className="my-3">
-          <h1>scISOseq Portal</h1>
+          <h2>Human and Mouse Brain Iso-seq and RNA-Seq</h2>
         </div>
         <div className="row gy-3">
           <div className="col col-auto">

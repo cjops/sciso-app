@@ -27,7 +27,7 @@ def get_datasets():
     cur.close()
     return {'datasets': datasets}
 
-def get_gene_names(datasets=['final']):
+def get_gene_names(datasets=['AdultCTX', 'FetalCTX', 'FetalHIP', 'FetalSTR', 'HumanCTX']):
     '''
     Get a full list of gene names to be used with autocomplete.
     '''

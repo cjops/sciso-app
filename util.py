@@ -132,7 +132,7 @@ def insert_transcript(feat, gene_id, dataset_id, cur, is_model=False):
     transcript_id = cur.fetchone()[0]
     return transcript_id
 
-def insert_exon(feat, transcript_id, cur):
+def insert_exon(feat, transcript_id, cur, exon_number=None):
     source = feat.get('source')
     if source:
         feat['attributes']['source'] = source
@@ -148,7 +148,7 @@ def insert_exon(feat, transcript_id, cur):
         ''', (
             transcript_id,
             feat['attributes'].get('exon_id'),
-            feat['attributes']['exon_number'],
+            feat['attributes'].get('exon_number', exon_number),
             feat['start'],
             feat['end'],
             Json(feat['attributes'])
@@ -164,13 +164,19 @@ def import_gtf(f, name, is_ref=False):
         print('Dataset with that name already exists')
         return
     dataset_id = insert_dataset(name, cur, is_ref)
+    gene_tuple = None
     skip_gene = False
 
     for feat in parse_gtf(f):
-        if feat['feature_type'] == 'gene':
-            parse_count['gene'] += 1
+        if 'gene_name' not in feat['attributes']:
+            feat['attributes']['gene_name'] = feat['attributes']['gene_id']
+        new_gene_tuple = (feat['attributes']['gene_name'], feat['chromosome'], feat['strand'])
+
+        if feat['feature_type'] == 'gene' or new_gene_tuple != gene_tuple:
+            gene_tuple = new_gene_tuple
+            if feat['feature_type'] == 'gene':
+                parse_count['gene'] += 1
             skip_gene = False
-            gene_tuple = (feat['attributes']['gene_name'], feat['chromosome'], feat['strand'])
             gene_id = all_genes.get(gene_tuple)
             if gene_id:
                 update_gene(gene_id, feat, dataset_id, cur)
@@ -180,20 +186,22 @@ def import_gtf(f, name, is_ref=False):
                     continue
                 gene_id = insert_gene(feat, dataset_id, cur)
                 all_genes[gene_tuple] = gene_id
-                insert_count['gene'] += 1                
+                insert_count['gene'] += 1
 
-        elif feat['feature_type'] == 'transcript':
+        if feat['feature_type'] == 'transcript':
+            exon_number = 1
             parse_count['tx'] += 1
             if skip_gene:
                 continue
             transcript_id = insert_transcript(feat, gene_id, dataset_id, cur)
             insert_count['tx'] += 1
 
-        elif feat['feature_type'] == 'exon':
+        if feat['feature_type'] == 'exon':
             parse_count['ex'] += 1
             if skip_gene:
                 continue
-            insert_exon(feat, transcript_id, cur)
+            insert_exon(feat, transcript_id, cur, exon_number=exon_number)
+            exon_number += 1
             insert_count['ex'] += 1
 
     cur.close()
@@ -332,19 +340,21 @@ def init_db(fname='schema.sql'):
     cur.close()
 
 def populate_db(data_dir='data'):
-    with open(f'{data_dir}/Isoform_annotations_4281_knownCells.gtf') as f:
-        import_gtf(f, 'final')
+    for dataset in ['AdultCTX', 'FetalCTX', 'FetalHIP', 'FetalSTR', 'HumanCTX']:
+        with open(f'{data_dir}/{dataset}_sqantitamafiltered.final.classification.gtf') as f:
+            import_gtf(f, dataset)
 
-    with gzip.open(f'{data_dir}/gencode.v33lift37.annotation.gtf.gz', 'rt') as f:
-        import_gtf(f, 'gencode.v33lift37', is_ref=True)
+    with gzip.open(f'{data_dir}/gencode.v36.annotation.gtf.gz', 'rt') as f:
+        import_gtf(f, 'gencode.v36', is_ref=True)
 
     generate_model_exons()
 
-    with open(f'{data_dir}/Isoform_Average_percent_expression_updated.txt') as f:
-        import_expression_values(f, 'final')
+#    with open(f'{data_dir}/Isoform_Average_percent_expression_updated.txt') as f:
+#        import_expression_values(f, 'final')
 
 #%%
 
 if __name__ == "__main__":
     init_db()
-    populate_db(data_dir='../data')
+    populate_db(data_dir='data/exeter')
+    generate_model_exons()
