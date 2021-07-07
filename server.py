@@ -11,14 +11,17 @@ DB_URI = \
     if os.getenv('FLASK_ENV') == 'development' and os.getenv('DB_URI_DEV') \
     else os.getenv('DB_URI')
 
-def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = psycopg2.connect(DB_URI)
-    return db
+def get_db(db=None):
+    uri = DB_URI
+    if db:
+        uri = DB_URI.rsplit('/', maxsplit=1)[0] + '/' + str(db)
+    con = getattr(g, '_database', None)
+    if con is None:
+        con = g._database = psycopg2.connect(uri)
+    return con
 
-def get_datasets():
-    cur = get_db().cursor(cursor_factory=psycopg2.extras.DictCursor)
+def get_datasets(db=None):
+    cur = get_db(db).cursor(cursor_factory=psycopg2.extras.DictCursor)
     cur.execute('''
         SELECT *
         FROM dataset;
@@ -27,7 +30,7 @@ def get_datasets():
     cur.close()
     return {'datasets': datasets}
 
-def get_gene_names(datasets=['AdultCTX', 'FetalCTX', 'FetalHIP', 'FetalSTR', 'HumanCTX']):
+def get_gene_names(datasets=['final'], db=None):
     '''
     Get a full list of gene names to be used with autocomplete.
     '''
@@ -35,7 +38,7 @@ def get_gene_names(datasets=['AdultCTX', 'FetalCTX', 'FetalHIP', 'FetalSTR', 'Hu
     # Might make sense for currently visible datasets to be stored in the db
     # instead of hardcoded here.
 
-    cur = get_db().cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cur = get_db(db).cursor(cursor_factory=psycopg2.extras.DictCursor)
     cur.execute('''
         SELECT id, name
         FROM gene g
@@ -50,8 +53,8 @@ def get_gene_names(datasets=['AdultCTX', 'FetalCTX', 'FetalHIP', 'FetalSTR', 'Hu
     gene_list.sort(key=lambda x: x[1])
     return {'genes': gene_list}
 
-def find_gene(gene_name):
-    cur = get_db().cursor(cursor_factory=psycopg2.extras.DictCursor)
+def find_gene(gene_name, db=None):
+    cur = get_db(db).cursor(cursor_factory=psycopg2.extras.DictCursor)
     cur.execute('''
         SELECT id, name, chromosome, strand
         FROM gene
@@ -107,3 +110,17 @@ def dataset_api():
 @app.route("/v2/gene_names")
 def gene_name_api():
     return get_gene_names()
+
+@app.route("/ex/gene")
+def gene_api_ex():
+    gene_name = request.args.get('geneId')
+    print(gene_name)
+    return find_gene(gene_name, db='exeter')
+
+@app.route("/ex/dataset")
+def dataset_api_ex():
+    return get_datasets(db='exeter')
+
+@app.route("/ex/gene_names")
+def gene_name_api_ex():
+    return get_gene_names(datasets=['AdultCTX', 'FetalCTX', 'FetalHIP', 'FetalSTR', 'HumanCTX'], db='exeter')
