@@ -5,7 +5,7 @@ export function DatasetInput(props) {
 
   useEffect(() => {
     const fetchData = async () => {
-      json('/v2/dataset').then(data => {
+      json(process.env.REACT_APP_API_ROOT + 'dataset').then(data => {
         let newDatasets = data.datasets.map((dataset) => {
           dataset.isChecked = true;
           return dataset;

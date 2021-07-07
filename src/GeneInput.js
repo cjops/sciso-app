@@ -14,7 +14,7 @@ export function GeneInput(props) {
   
   useEffect(() => {
     const fetchData = async () => {
-      json('/v2/gene_names').then(data => {
+      json(process.env.REACT_APP_API_ROOT + 'gene_names').then(data => {
         setGeneNames(data.genes);
       });
     };

@@ -20,7 +20,7 @@ class GeneViz extends React.Component {
   componentDidUpdate(prevProps) {
     if (this.props.gene !== prevProps.gene) {
       this.setState({loading: true});
-      json('/v2/gene?geneId=' + this.props.gene).then(data => {
+      json(process.env.REACT_APP_API_ROOT + 'gene?geneId=' + this.props.gene).then(data => {
         this.setState({data: data, loading: false});
       });
     }
@@ -404,7 +404,7 @@ class App extends React.Component {
     return (
       <div className="container-xxl">
         <div className="my-3">
-          <h2>Human and Mouse Brain Iso-seq and RNA-Seq</h2>
+          <h2>{process.env.REACT_APP_WEBSITE_NAME}</h2>
         </div>
         <div className="row gy-3">
           <div className="col col-auto">
