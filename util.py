@@ -357,4 +357,3 @@ def populate_db(data_dir='data'):
 if __name__ == "__main__":
     init_db()
     populate_db(data_dir='data/exeter')
-    generate_model_exons()
